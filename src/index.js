@@ -6,7 +6,7 @@ dotenv.config({ path: "./.env" });
 connectDB()
   .then(() => {
     app.listen(process.env.PORT || 3000, (req, res) => {
-      console.log(`Server is Listning on ${process.env.PORT}`);
+      console.log(`Server is listening on ${process.env.PORT || 3000}`);
     });
   })
   .catch((err) => {
