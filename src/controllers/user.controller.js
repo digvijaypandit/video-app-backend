@@ -3,7 +3,8 @@ import {ApiError} from '../utils/apiError.js'
 import { User } from "../models/user.mondel.js";
 import {uploadOnCloudinary} from '../utils/cloudinary.js'
 import {ApiResponse} from '../utils/ApiResponse.js'
-import {jwt} from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
+
 import dotenv from "dotenv";
 dotenv.config();
 
