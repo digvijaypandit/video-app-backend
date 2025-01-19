@@ -29,28 +29,48 @@ const createTweet = asyncHandler(async (req, res) => {
 
 const getUserTweets = asyncHandler(async (req, res) => {
     // TODO: get user tweets
-    const {userId} = req.params
+    const userId = req.param
+
+    const objectId = toString(userId);
 
     if(!userId) {
         throw new ApiError(400,"Invalid User Id")
     }
 
-    const user = await Tweet.countDocuments({tweetBy:userId})
-    .then(count => {
-      console.log(`Number of documents in Collection1 that reference this Collection2 ID: ${count}`);
-    })
-    .catch(err => {
-      console.error(err);
-    });
-    if (!user) {
-        throw new ApiError(500,"Something went wrong while finding tweets")
+    const allTweets = await User.aggregate([
+        {
+            $match: {tweetBy: objectId }
+          },
+          {
+            $lookup: {
+              from: "tweets",
+              localField: "_id",
+              foreignField: "tweetBy",
+              as: "allTweets"
+            }
+          },
+          {
+            $project: {
+              _id: 1,
+              content: 1,
+              createdAt: 1,
+              updatedAt: 1,
+              "user.username": 1,
+              "user.email": 1 
+            }
+          }
+    ])
+    
+    console.table(allTweets)
+    
+    if (!allTweets) {
+        throw new ApiError(500,"Something went wrong while finding the tweets")
     }
 
     return res.status(200)
-    .josn(
-        new ApiResponse(200, user, "")
+    .json(
+        new ApiResponse(200,allTweets,"tweets of user all successfully fetched")
     )
-    
 })
 
 const updateTweet = asyncHandler(async (req, res) => {
