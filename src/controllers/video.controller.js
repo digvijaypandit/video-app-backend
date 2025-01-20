@@ -5,6 +5,7 @@ import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
+import { v2 as cloudinary } from "cloudinary";
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -13,8 +14,57 @@ const getAllVideos = asyncHandler(async (req, res) => {
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
-    const { title, description} = req.body
-    // TODO: get video, upload to cloudinary, create video
+    const { title, discription} = req.body
+    const userId = req.user._id;
+
+    if (!(title || discription)) {
+        throw new ApiError(201,"title and description are required")
+    }
+
+    const VideoLoaclPath = req.files?.videoFile?.[0]?.path
+
+    let thumbnailLoaclPath;
+    if (req.files && Array.isArray(req.files.thumbnail) && req.files.thumbnail.length > 0){
+        thumbnailLoaclPath = req.files.thumbnail[0].path
+    }
+
+    if(!VideoLoaclPath){
+        throw new ApiError(400,"Video file are required")
+    }
+
+    const video = await uploadOnCloudinary(VideoLoaclPath)
+    const thumbnail = await uploadOnCloudinary(thumbnailLoaclPath)
+
+    if(!video){
+        throw new ApiError(408,"video is requires")   
+    }
+
+    const thumbnailUrl = cloudinary.url(video.url, {
+        resource_type: 'video',
+        width: 300,
+        height: 300,
+        crop: 'fill',
+        effect: 'video_thumb',
+        start_offset: 10 
+      });
+
+    const videoupload = await Video.create({
+        title,
+        discription,
+        thumbnail:thumbnail?.url || thumbnailUrl,
+        videoFile:video.url,
+        duration:video.duration,
+        owner:userId
+    })
+
+    if (!videoupload) {
+        throw new ApiError(500,"Something is went wrong while upload a video")
+    }
+
+    return res.status(200)
+    .json(
+        new ApiResponse(200, videoupload ,"Video successfully uploaded")
+    )
 })
 
 const getVideoById = asyncHandler(async (req, res) => {

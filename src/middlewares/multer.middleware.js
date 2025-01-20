@@ -9,4 +9,14 @@ const storage = multer.diskStorage({
     }
   })
 
-export const upload = multer({ storage, })
+  const fileFilter = (req, file, cb) => {
+    // Accept image and video file types only
+    const allowedTypes = ['image/jpeg', 'image/png', 'video/mp4', 'video/webm', 'video/avi'];
+    if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);  // Accept the file
+    } else {
+        cb(new Error('Invalid file type'), false);  // Reject the file
+    }
+};
+
+export const upload = multer({ storage,fileFilter })
