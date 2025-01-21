@@ -1,4 +1,4 @@
-import mongoose, { isValidObjectId } from "mongoose";
+import mongoose, { isValidObjectId, set } from "mongoose";
 import { Video } from "../models/video.model.js";
 import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -81,12 +81,79 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  //TODO: update video details like title, description, thumbnail
+  const {title, discription} = req.body;
+  const thumbnailLoaclPath = req.file?.path
+
+  if(!thumbnailLoaclPath){
+    throw new ApiError(400,"thumbnail file missing")
+  }
+
+  const thumbnail = await uploadOnCloudinary(thumbnailLoaclPath)
+
+  if (!thumbnail.url) {
+    throw new ApiError(500,"Something went wrong")
+  }
+
+  const newthumbnail = await Video.findByIdAndUpdate(
+    videoId,
+    {
+        $set:{
+          thumbnail:thumbnail.url
+        }
+    },
+    {new:true},
+  )
+
+  if(newthumbnail){
+    return res.status(200)
+    .json(
+      new ApiResponse(200, newthumbnail ,"avatar updated successfully ")
+    )
+  }
+
+  if(title) {
+    const updateTitle = await Video.findByIdAndUpdate(
+      videoId,
+      {
+        $set:{
+        title,
+        }
+      }
+    )
+
+    if (!updateTitle) {
+      throw new ApiError(500,"Something went wrong while updating the title")
+    }
+
+    res.status(200)
+    .json(
+      new ApiResponse(200,updateTitle,"Title successfully update")
+    )
+  }
+
+  if(discription) {
+    const updatedisc = await Video.findByIdAndUpdate(
+      videoId,
+      {
+        $set:{
+        discription,
+        }
+      }
+    )
+
+    if (!updatedisc) {
+      throw new ApiError(500,"Something went wrong while updating the discription")
+    }
+
+    res.status(200)
+    .json(
+      new ApiResponse(200,updatedisc,"Title successfully update")
+    )
+  }
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  //TODO: delete video
   if (!videoId) {
     throw new ApiError(401, "video id and is required for delete a video");
   }
@@ -95,7 +162,6 @@ const deleteVideo = asyncHandler(async (req, res) => {
   console.log(deletedVideo.videoPublicId,deletedVideo.thumbnailPublicId)
 
   if (deletedVideo) {
-    // Delete an image
     cloudinary.uploader.destroy(
         deletedVideo.thumbnailPublicId,
       { resource_type: "image" },
@@ -107,8 +173,6 @@ const deleteVideo = asyncHandler(async (req, res) => {
         }
       }
     );
-
-    // Delete a video
     cloudinary.uploader.destroy(
         deletedVideo.videoPublicId,
       { resource_type: "video" },
@@ -138,6 +202,43 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  const {value} = req.body;
+
+  if (!videoId){
+    throw new ApiError(400,"video id required for the toggle video information");
+  }
+
+  if (!value){
+    throw new ApiError(400,"value is required for the toggle video information");
+  }
+
+  if (!value) {
+    const togglechanged = await Video.findByIdAndUpdate(
+      videoId,
+      {
+        $set:{
+          isPublished:false
+        }
+      },{new:true}
+    )
+    return res.status(200)
+    .json(new ApiResponse(200,togglechanged,"toggle is changed successfully"))
+  }
+
+  if (value) {
+    const togglechanged = await Video.findByIdAndUpdate(
+      videoId,
+      {
+        $set:{
+          isPublished:true
+        }
+      },{new:true}
+    )
+
+    return res.status(200)
+    .json(new ApiResponse(200,togglechanged,"toggle is changed successfully"))
+  }
+
 });
 
 export {
