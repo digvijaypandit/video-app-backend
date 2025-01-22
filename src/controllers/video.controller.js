@@ -8,8 +8,59 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { v2 as cloudinary } from "cloudinary";
 
 const getAllVideos = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
-  //TODO: get all videos based on query, sort, pagination
+  try {
+    const { 
+      page = 1, 
+      limit = 10, 
+      query = '', 
+      sortBy = 'createdAt', 
+      sortType = 'desc', 
+      userId 
+    } = req.query;
+
+    // Convert page and limit to integers
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+
+    // Build the query object
+    const searchQuery = {};
+    if (query) {
+      searchQuery.title = { $regex: query, $options: 'i' }; // Case-insensitive search on the "title" field
+    }
+    if (userId) {
+      searchQuery.userId = userId; // Filter by userId if provided
+    }
+
+    // Build the sort object
+    const sortOrder = sortType === 'asc' ? 1 : -1;
+    const sortQuery = { [sortBy]: sortOrder };
+
+    // Fetch videos from the database with pagination, sorting, and filtering
+    const videos = await Video.find(searchQuery)
+      .sort(sortQuery)
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber);
+
+    // Get the total count of documents for pagination info
+    const totalVideos = await Video.countDocuments(searchQuery);
+
+    // Respond with JSON
+    res.status(200).json({
+      success: true,
+      data: videos,
+      pagination: {
+        currentPage: pageNumber,
+        totalPages: Math.ceil(totalVideos / limitNumber),
+        totalItems: totalVideos,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch videos',
+      error: error.message,
+    });
+  }
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
