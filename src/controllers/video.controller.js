@@ -18,33 +18,27 @@ const getAllVideos = asyncHandler(async (req, res) => {
       userId 
     } = req.query;
 
-    // Convert page and limit to integers
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
 
-    // Build the query object
     const searchQuery = {};
     if (query) {
-      searchQuery.title = { $regex: query, $options: 'i' }; // Case-insensitive search on the "title" field
+      searchQuery.title = { $regex: query, $options: 'i' };
     }
     if (userId) {
-      searchQuery.userId = userId; // Filter by userId if provided
+      searchQuery.userId = userId;
     }
 
-    // Build the sort object
     const sortOrder = sortType === 'asc' ? 1 : -1;
     const sortQuery = { [sortBy]: sortOrder };
 
-    // Fetch videos from the database with pagination, sorting, and filtering
     const videos = await Video.find(searchQuery)
       .sort(sortQuery)
       .skip((pageNumber - 1) * limitNumber)
       .limit(limitNumber);
 
-    // Get the total count of documents for pagination info
     const totalVideos = await Video.countDocuments(searchQuery);
 
-    // Respond with JSON
     res.status(200).json({
       success: true,
       data: videos,

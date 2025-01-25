@@ -76,7 +76,6 @@ const getUserTweets = asyncHandler(async (req, res) => {
 const updateTweet = asyncHandler(async (req, res) => {
     const tweetId = req.params.tweetId || req.query.tweetId;
     const {content} = req.body;
-    console.log(tweetId)
     if (!isValidObjectId(tweetId)) {
         throw new ApiError(400,"Invalid tweetID")
     }

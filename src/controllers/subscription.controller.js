@@ -70,13 +70,11 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
   const { subscriberId } = req.params;
 
   try {
-    // Find all subscriptions where the subscriber is the given subscriberId
     const subscriptions = await Subscription.find({ subscriber: subscriberId }).populate(
       "channel",
-      "username fullName avatar" // Include only necessary fields
+      "username fullName avatar"
     );
 
-    // Extract the channel details from the subscriptions
     const channelList = subscriptions.map((sub) => sub.channel);
 
     res.status(200).json(

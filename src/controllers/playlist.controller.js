@@ -4,12 +4,8 @@ import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 
-
 const createPlaylist = asyncHandler(async (req, res) => {
     const {name, description} = req.body
-
-    console.log(req.user);
-    
 
     if (!(name || description)) {
         throw new ApiError(400,"Name and description is needed for the create new Playlist")
