@@ -20,7 +20,6 @@ const generateAccessAndRefreshTokens = async(userId) => {
 
         return {accessToken, refreshToken}
     } catch (error) {
-        // console.log(error)
         throw new ApiError(500,"Something went wrong while genreating access and refresh token")
     }
 }
@@ -43,7 +42,6 @@ const registerUser = asyncHandler(async (req,res) => {
     }
 
     const avatarLoaclPath = req.files?.avatar[0]?.path;
-    // const coverImageLoaclPath = req.files?.coverImage[0]?.path;
 
     let coverImageLoaclPath;
     if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){

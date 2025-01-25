@@ -28,50 +28,50 @@ const createTweet = asyncHandler(async (req, res) => {
 })
 
 const getUserTweets = asyncHandler(async (req, res) => {
-    // TODO: get user tweets
-    const userId = req.param
+    const { userId } = req.params;
 
-    const objectId = toString(userId);
-
-    if(!userId) {
-        throw new ApiError(400,"Invalid User Id")
+    if (!userId) {
+        throw new ApiError(400, "Invalid User ID");
     }
 
-    const allTweets = await User.aggregate([
+
+    const objectId = new mongoose.Types.ObjectId(userId);
+
+    const allTweets = await Tweet.aggregate([
         {
-            $match: {tweetBy: objectId }
-          },
-          {
+            $match: { tweetBy: objectId },
+        },
+        {
             $lookup: {
-              from: "tweets",
-              localField: "_id",
-              foreignField: "tweetBy",
-              as: "allTweets"
-            }
-          },
-          {
+                from: "users",
+                localField: "tweetBy",
+                foreignField: "_id",
+                as: "user",
+            },
+        },
+        {
+            $unwind: "$user",
+        },
+        {
             $project: {
-              _id: 1,
-              content: 1,
-              createdAt: 1,
-              updatedAt: 1,
-              "user.username": 1,
-              "user.email": 1 
-            }
-          }
-    ])
-    
-    console.table(allTweets)
-    
-    if (!allTweets) {
-        throw new ApiError(500,"Something went wrong while finding the tweets")
+                _id: 1,
+                content: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                "user.username": 1,
+                "user.email": 1,
+            },
+        },
+    ]);
+
+    if (!allTweets || allTweets.length === 0) {
+        throw new ApiError(404, "No tweets found for the user");
     }
 
-    return res.status(200)
-    .json(
-        new ApiResponse(200,allTweets,"tweets of user all successfully fetched")
-    )
-})
+    return res.status(200).json(
+        new ApiResponse(200, allTweets, "User tweets fetched successfully")
+    );
+});
 
 const updateTweet = asyncHandler(async (req, res) => {
     const tweetId = req.params.tweetId || req.query.tweetId;
