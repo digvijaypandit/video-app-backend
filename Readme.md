@@ -1,6 +1,8 @@
 # Backend for the YouTube-like App
 
-This is the backend setup for a YouTube-like application.
+This is the backend for a YouTube-like application.
+under the guidance of chai aur code Hitesh Sir
+
 
 ## Endpoints
 
