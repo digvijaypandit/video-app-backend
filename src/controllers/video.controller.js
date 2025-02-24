@@ -62,35 +62,40 @@ const publishAVideo = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
   if (!(title || discription)) {
-    throw new ApiError(201, "title and description are required");
+    throw new ApiError(201, "Title and description are required");
   }
 
   const VideoLoaclPath = req.files?.videoFile?.[0]?.path;
-
-  let thumbnailLoaclPath;
-  if (
-    req.files &&
-    Array.isArray(req.files.thumbnail) &&
-    req.files.thumbnail.length > 0
-  ) {
-    thumbnailLoaclPath = req.files.thumbnail[0].path;
-  }
+  let thumbnailLoaclPath =
+    req.files?.thumbnail?.[0]?.path || null; // ✅ Handle missing thumbnail
 
   if (!VideoLoaclPath) {
-    throw new ApiError(400, "Video file are required");
+    throw new ApiError(400, "Video file is required");
   }
 
-  const video = await uploadOnCloudinary(VideoLoaclPath);
-  const thumbnail = await uploadOnCloudinary(thumbnailLoaclPath);
+  const video = await uploadOnCloudinary(VideoLoaclPath, "video");
 
   if (!video) {
-    throw new ApiError(408, "video is requires");
+    throw new ApiError(408, "Video upload failed");
   }
 
+  let thumbnail;
+  
+  if (thumbnailLoaclPath) {
+    thumbnail = await uploadOnCloudinary(thumbnailLoaclPath);
+  } else {
+    const publicId = video.public_id;
+    thumbnail = {
+      url: `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/video/upload/so_3/${publicId}.jpg`, // Extract at 3 seconds
+      public_id: `${publicId}_thumb`,
+    };
+  }
+
+  // ✅ Save video & thumbnail details to database
   const videoupload = await Video.create({
     title,
     discription,
-    thumbnail: thumbnail?.url || "",
+    thumbnail: thumbnail?.url || "", // ✅ Auto-generated or uploaded thumbnail
     videoFile: video.url,
     duration: video.duration,
     owner: userId,
@@ -99,7 +104,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
   });
 
   if (!videoupload) {
-    throw new ApiError(500, "Something is went wrong while upload a video");
+    throw new ApiError(500, "Something went wrong while uploading the video");
   }
 
   return res
