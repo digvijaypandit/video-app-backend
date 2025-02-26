@@ -287,17 +287,26 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
 })
 
 const getUserChannelProfile = asyncHandler(async(req, res) => {
-    const {username} = req.params
+    const identifier = req.params.identifier;
 
-    if (!username?.trim()) {
-        throw new ApiError(400, "username is missing")
+    if (!identifier) {
+        throw new ApiError(400, "Identifier (username or userId) is required");
+    }
+
+    let userIdCondition = null;
+
+    if (mongoose.Types.ObjectId.isValid(identifier)) {
+        userIdCondition = new mongoose.Types.ObjectId(identifier);
     }
 
     const channel = await User.aggregate([
         {
             $match: {
-                username: username?.toLowerCase()
-            }
+                $or: [
+                    { username: identifier.toLowerCase() },  // Match by username
+                    userIdCondition ? { _id: userIdCondition } : {}
+                ]
+            }            
         },
         {
             $lookup: {
