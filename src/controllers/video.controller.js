@@ -67,7 +67,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
   const VideoLoaclPath = req.files?.videoFile?.[0]?.path;
   let thumbnailLoaclPath =
-    req.files?.thumbnail?.[0]?.path || null; // ✅ Handle missing thumbnail
+    req.files?.thumbnail?.[0]?.path || null;
 
   if (!VideoLoaclPath) {
     throw new ApiError(400, "Video file is required");
@@ -91,11 +91,10 @@ const publishAVideo = asyncHandler(async (req, res) => {
     };
   }
 
-  // ✅ Save video & thumbnail details to database
   const videoupload = await Video.create({
     title,
     discription,
-    thumbnail: thumbnail?.url || "", // ✅ Auto-generated or uploaded thumbnail
+    thumbnail: thumbnail?.url || "",
     videoFile: video.url,
     duration: video.duration,
     owner: userId,
@@ -114,19 +113,30 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  const userId = req.user._id;
+
   if (!videoId) {
-    throw new ApiError(300, "video id is required");
+    throw new ApiError(400, "Video ID is required");
   }
 
-  const video = await Video.findById(videoId);
+  const video = await Video.findByIdAndUpdate(
+    videoId,
+    { $inc: { views: 1 } },
+    { new: true }
+  );
 
   if (!video) {
-    throw new ApiError(500, "Something went wrong while finding the video");
+    throw new ApiError(404, "Video not found");
   }
+
+  await User.updateOne(
+    { _id: userId },
+    { $addToSet: { watchHistory: videoId } }
+  );
 
   return res
     .status(200)
-    .json(new ApiResponse(200, video, "video successfully fetched"));
+    .json(new ApiResponse(200, video, "Video successfully fetched, view count updated, and added to watch history"));
 });
 
 const updateVideo = asyncHandler(async (req, res) => {
