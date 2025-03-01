@@ -32,10 +32,17 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
         throw new ApiError(400,"userId is required to fetch the Playlists")
     }
 
-    const playlists = await Playlist.find({ onwer: userId });
+    const playlists = await Playlist.find({ onwer: userId }).populate({
+        path: "video",
+        select: "thumbnail",
+      }).populate({
+        path: "onwer",
+        select: "username",
+      });
+;
 
     if(playlists.length === 0){
-        throw new ApiError(404,"playlists not found")
+        return res.status(200).json(new ApiResponse(200,"playlists Not found"))
     }
 
     return res.status(200)
@@ -50,8 +57,8 @@ const getPlaylistById = asyncHandler(async (req, res) => {
     }
 
     const playlist = await Playlist.findById(playlistId)
-        .populate("video", "title url") 
-        .populate("onwer", "name email"); 
+        .populate("video", "title thumbnail")
+        .populate("onwer", "username"); 
 
     if (!playlist) {
         throw new ApiError(404, "Playlist not found");
@@ -74,8 +81,8 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
                 video:videoId,
             }
         },{new:true}
-    ).populate("video", "title url")
-    .populate("onwer", "name email");
+    ).populate("video", "title thumbnail")
+    .populate("onwer", "username");
 
     if (!videoAdded) {
         throw new ApiError(500,"something went wrong while adding video into playlist")

@@ -33,14 +33,6 @@ const videoSchema = new Schema({
         type:Schema.Types.ObjectId,
         ref:"User"
     },
-    videoPublicId:{
-        type:String,
-        required:true,
-    },
-    thumbnailPublicId:{
-        type:String,
-        required:true,
-    }
 
 },{timestamps:true});
 
