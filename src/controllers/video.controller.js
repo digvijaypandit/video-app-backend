@@ -58,10 +58,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
-  const { title, discription } = req.body;
+  const { title, description } = req.body;
   const userId = req.user._id;
 
-  if (!(title || discription)) {
+  if (!(title || description)) {
     throw new ApiError(201, "Title and description are required");
   }
 
@@ -93,7 +93,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
   const videoupload = await Video.create({
     title,
-    discription,
+    description,
     thumbnail: thumbnail?.url || "",
     videoFile: video.url,
     duration: video.duration,
@@ -141,7 +141,7 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  const {title, discription} = req.body;
+  const {title, description} = req.body;
   const thumbnailLoaclPath = req.file?.path
 
   if(!thumbnailLoaclPath){
@@ -191,18 +191,18 @@ const updateVideo = asyncHandler(async (req, res) => {
     )
   }
 
-  if(discription) {
+  if(description) {
     const updatedisc = await Video.findByIdAndUpdate(
       videoId,
       {
         $set:{
-        discription,
+          description,
         }
       }
     )
 
     if (!updatedisc) {
-      throw new ApiError(500,"Something went wrong while updating the discription")
+      throw new ApiError(500,"Something went wrong while updating the description")
     }
 
     res.status(200)
