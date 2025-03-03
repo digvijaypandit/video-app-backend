@@ -5,40 +5,42 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const getVideoComments = asyncHandler(async (req, res) => {
-    const { videoId } = req.params;
-    const { page = 1, limit = 10 } = req.body;
+  const { videoId } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+  console.log(page, limit);
   
-    if (!videoId) {
+
+  if (!videoId) {
       throw new ApiError(400, "videoId is needed for fetching all comments");
-    }
-  
-    const allComments = await Comment.aggregatePaginate(
-      Comment.aggregate([
-        {
-          $match: {
-            video: new mongoose.Types.ObjectId(videoId),
-          },
-        },
-        {
-          $sort: {
-            createdAt: -1,
-          },
-        },
-      ]),
-      {
-        page: parseInt(page, 10),
-        limit: parseInt(limit, 10),
-      }
-    );
-  
-    if (!allComments) {
+  }
+
+  const allComments = await Comment.find({ video: videoId })
+      .populate({
+          path: "owner",
+          select: "username avatar",
+          model: "User"
+      })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit, 10));
+
+  if (!allComments) {
       throw new ApiError(500, "Something went wrong while fetching all comments");
-    }
-  
-    return res
-      .status(200)
-      .json(new ApiResponse(200, allComments, "All comments fetched successfully"));
-});   
+  }
+
+  const totalDocs = await Comment.countDocuments({ video: videoId });
+  const totalPages = Math.ceil(totalDocs / limit);
+
+  return res.status(200).json(new ApiResponse(200, {
+      docs: allComments,
+      totalDocs,
+      limit: parseInt(limit, 10),
+      page: parseInt(page, 10),
+      totalPages,
+      hasPrevPage: page > 1,
+      hasNextPage: page < totalPages
+  }, "All comments fetched successfully"));
+});
 
 const addComment = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
@@ -51,19 +53,20 @@ const addComment = asyncHandler(async (req, res) => {
     );
   }
 
+  // 🔄 Fix this line
   const commentadded = await Comment.create({
     content,
     video: videoId,
-    user: req.user?._id,
+    owner: req.user?._id,  // Changed `user` to `owner`
   });
 
   if (!commentadded) {
-    throw new ApiError(500, "somthing went wrong while creating comment");
+    throw new ApiError(500, "Something went wrong while creating comment");
   }
 
   return res
     .status(200)
-    .json(new ApiResponse(200, commentadded, "comment successfully added"));
+    .json(new ApiResponse(200, commentadded, "Comment successfully added"));
 });
 
 const updateComment = asyncHandler(async (req, res) => {
