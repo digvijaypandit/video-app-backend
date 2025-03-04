@@ -286,27 +286,30 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
 
 })
 
-const getUserChannelProfile = asyncHandler(async(req, res) => {
+const getUserChannelProfile = asyncHandler(async (req, res) => {
     const identifier = req.params.identifier;
-
     if (!identifier) {
         throw new ApiError(400, "Identifier (username or userId) is required");
     }
 
     let userIdCondition = null;
 
+    // Check if the identifier is a valid ObjectId
     if (mongoose.Types.ObjectId.isValid(identifier)) {
         userIdCondition = new mongoose.Types.ObjectId(identifier);
+    }
+
+    // Construct the $or condition dynamically
+    const orConditions = [{ username: { $regex: new RegExp(`^${identifier}$`, 'i') } }];
+    if (userIdCondition) {
+        orConditions.push({ _id: userIdCondition });
     }
 
     const channel = await User.aggregate([
         {
             $match: {
-                $or: [
-                    { username: identifier.toLowerCase() },  // Match by username
-                    userIdCondition ? { _id: userIdCondition } : {}
-                ]
-            }            
+                $or: orConditions
+            }
         },
         {
             $lookup: {
@@ -326,15 +329,15 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
         },
         {
             $addFields: {
-              subscribersCount: { $size: "$subscribers" },
-              channelsSubscribedToCount: { $size: "$subscribedTo" },
-              isSubscribed: {
-                $cond: {
-                  if: { $in: [req.user?._id, "$subscribers.subscriber"] },
-                  then: true,
-                  else: false
+                subscribersCount: { $size: "$subscribers" },
+                channelsSubscribedToCount: { $size: "$subscribedTo" },
+                isSubscribed: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+                        then: true,
+                        else: false
+                    }
                 }
-              }
             }
         },
         {
@@ -347,21 +350,20 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
                 avatar: 1,
                 coverImage: 1,
                 email: 1
-
             }
         }
-    ])
+    ]);
 
     if (!channel?.length) {
-        throw new ApiError(404, "channel does not exists")
+        throw new ApiError(404, "Channel does not exist");
     }
 
     return res
-    .status(200)
-    .json(
-        new ApiResponse(200, channel[0], "User channel fetched successfully")
-    )
-})
+        .status(200)
+        .json(
+            new ApiResponse(200, channel[0], "User channel fetched successfully")
+        );
+});
 
 const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
@@ -416,7 +418,6 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         )
     );
 });
-
 
 export {
     registerUser,
