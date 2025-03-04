@@ -313,7 +313,7 @@ const getVideoByUserId = asyncHandler(async (req, res) => {
     throw new ApiError(400, "User ID is required");
   }
 
-  const videos = await Video.find({ owner: userId });
+  const videos = await Video.find({ owner: userId }).sort({ createdAt: -1 });
 
   if (!videos) {
     throw new ApiError(404, "No videos found for this user");
