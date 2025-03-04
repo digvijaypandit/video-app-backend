@@ -73,8 +73,14 @@ const publishAVideo = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Video file is required");
   }
 
-  const video = await uploadOnCloudinary(VideoLoaclPath, "video");
-
+  const video = await uploadOnCloudinary(VideoLoaclPath, "video", {
+    resource_type: "video",
+    transformation: [
+      { quality: "auto" },
+      { fetch_format: "auto" }
+    ]
+  });
+  
   if (!video) {
     throw new ApiError(408, "Video upload failed");
   }
@@ -86,7 +92,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
   } else {
     const publicId = video.public_id;
     thumbnail = {
-      url: `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/video/upload/so_3/${publicId}.jpg`, // Extract at 3 seconds
+      url: `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/video/upload/so_3,w_300,h_200,c_fill/${publicId}.jpg`,
       public_id: `${publicId}_thumb`,
     };
   }
