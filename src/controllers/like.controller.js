@@ -96,7 +96,12 @@ const getLikedVideos = asyncHandler(async (req, res) => {
     }
 
     const likedVideos = await Like.aggregate([
-        { $match: { likedBy: new mongoose.Types.ObjectId(userId), video: { $exists: true } } },
+        { 
+            $match: { 
+                likedBy: new mongoose.Types.ObjectId(userId), 
+                video: { $exists: true } 
+            } 
+        },
         {
             $lookup: {
                 from: "videos",
@@ -107,13 +112,34 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         },
         { $unwind: "$videoDetails" },
         {
+            $lookup: {
+                from: "users",
+                localField: "videoDetails.owner",
+                foreignField: "_id",
+                as: "ownerDetails"
+            }
+        },
+        { $unwind: "$ownerDetails" },
+        {
             $group: {
                 _id: "$videoDetails._id",
+                thumbnail: { $first: "$videoDetails.thumbnail" },
                 title: { $first: "$videoDetails.title" },
                 description: { $first: "$videoDetails.description" },
-                createdAt: { $first: "$videoDetails.createdAt" }
+                duration: { $first: "$videoDetails.duration" },
+                views: { $first: "$videoDetails.views" },
+                updatedAt: { $first: "$videoDetails.updatedAt" },
+                createdAt: { $first: "$videoDetails.createdAt" },
+                owner: {
+                    $first: {
+                        username: "$ownerDetails.username",
+                        fullName: "$ownerDetails.fullName",
+                        avatar: "$ownerDetails.avatar"
+                    }
+                }
             }
-        }
+        },
+        { $sort: { updatedAt: -1 } }
     ]);
 
     return res.status(200).json(
