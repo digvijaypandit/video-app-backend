@@ -34,7 +34,6 @@ const getUserTweets = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid User ID");
     }
 
-
     const objectId = new mongoose.Types.ObjectId(userId);
 
     const allTweets = await Tweet.aggregate([
@@ -62,6 +61,9 @@ const getUserTweets = asyncHandler(async (req, res) => {
                 "user.email": 1,
             },
         },
+        {
+            $sort: { updatedAt: -1 }
+        }
     ]);
 
     if (!allTweets || allTweets.length === 0) {
