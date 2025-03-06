@@ -33,7 +33,14 @@ const videoSchema = new Schema({
         type:Schema.Types.ObjectId,
         ref:"User"
     },
-
+    thumbnailPublicId:{
+        type:String,
+        required:true,
+    },
+    videoPublicId:{
+        type:String,
+        required:true,
+    }
 },{timestamps:true});
 
 videoSchema.plugin(mongooseAggregatePaginate);

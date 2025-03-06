@@ -1,4 +1,4 @@
-import mongoose, { isValidObjectId, set } from "mongoose";
+import mongoose, { isValidObjectId, ObjectId, set } from "mongoose";
 import { Video } from "../models/video.model.js";
 import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -21,7 +21,8 @@ const getAllVideos = asyncHandler(async (req, res) => {
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
 
-    const searchQuery = {};
+    const searchQuery = { isPublished: true }; 
+
     if (query) {
       searchQuery.title = { $regex: query, $options: 'i' };
     }
@@ -80,7 +81,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
       { fetch_format: "auto" }
     ]
   });
-  
+
   if (!video) {
     throw new ApiError(408, "Video upload failed");
   }
@@ -149,6 +150,16 @@ const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   const {title, description} = req.body;
   const thumbnailLoaclPath = req.file?.path
+  const currentUserId = req.user._id.toString();
+
+  const video = await Video.findById(videoId);
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+
+  if (video.owner.toString() !== currentUserId) {
+    throw new ApiError(403, "You are not authorized to update this video's");
+  }
 
   if(!thumbnailLoaclPath){
     throw new ApiError(400,"thumbnail file missing")
@@ -220,12 +231,22 @@ const updateVideo = asyncHandler(async (req, res) => {
 
 const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  const currentUserId = req.user._id.toString();
+
   if (!videoId) {
     throw new ApiError(401, "video id and is required for delete a video");
   }
 
+  const video = await Video.findById(videoId);
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+  
+  if (video.owner.toString() !== currentUserId) {
+    throw new ApiError(403, "You are not authorized to delete this video's");
+  }
+
   const deletedVideo = await Video.findByIdAndDelete(videoId);
-  console.log(deletedVideo.videoPublicId,deletedVideo.thumbnailPublicId)
 
   if (deletedVideo) {
     cloudinary.uploader.destroy(
@@ -268,54 +289,60 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  const {value} = req.body;
+  const { value } = req.body;
+  const currentUserId = req.user._id.toString();
 
-  if (!videoId){
-    throw new ApiError(400,"video id required for the toggle video information");
-  }
-
-  if (!value){
-    throw new ApiError(400,"value is required for the toggle video information");
+  if (!videoId) {
+    throw new ApiError(400, "Video ID is required for toggling video information");
   }
 
   if (!value) {
-    const togglechanged = await Video.findByIdAndUpdate(
-      videoId,
-      {
-        $set:{
-          isPublished:false
-        }
-      },{new:true}
-    )
-    return res.status(200)
-    .json(new ApiResponse(200,togglechanged,"toggle is changed successfully"))
+    throw new ApiError(400, "Value is required for toggling video information");
   }
 
-  if (value) {
-    const togglechanged = await Video.findByIdAndUpdate(
-      videoId,
-      {
-        $set:{
-          isPublished:true
-        }
-      },{new:true}
-    )
-
-    return res.status(200)
-    .json(new ApiResponse(200,togglechanged,"toggle is changed successfully"))
+  if (value !== "public" && value !== "private") {
+    throw new ApiError(400, "Only accept 'true' or 'false' value");
   }
 
+  const video = await Video.findById(videoId);
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+
+  if (video.owner.toString() !== currentUserId) {
+    throw new ApiError(403, "You are not authorized to change this video's status");
+  }
+
+  const togglechanged = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      $set: {
+        isPublished: value === "public"
+      }
+    },
+    { new: true }
+  );
+
+  return res.status(200).json(new ApiResponse(200, togglechanged, "Toggle is changed successfully"));
 });
 
 const getVideoByUserId = asyncHandler(async (req, res) => {
   const { userId } = req.params;
+  const currentUserId = req.user._id.toString();
+
   if (!userId) {
     throw new ApiError(400, "User ID is required");
   }
 
-  const videos = await Video.find({ owner: userId }).sort({ createdAt: -1 });
+  let videos;
 
-  if (!videos) {
+  if (currentUserId === userId) {
+    videos = await Video.find({ owner: userId }).sort({ createdAt: -1 });
+  } else {
+    videos = await Video.find({ owner: userId,isPublished: true }).sort({ createdAt: -1 }); 
+  }
+
+  if (!videos || videos.length === 0) {
     throw new ApiError(404, "No videos found for this user");
   }
 

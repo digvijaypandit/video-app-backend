@@ -400,6 +400,13 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                         }
                     },
                     {
+                        $project: {
+                            videoFile: 0,
+                            description: 0,
+                            createdAt: 0
+                        }
+                    },
+                    {
                         $sort: { updatedAt: -1 }
                     }
                 ]
