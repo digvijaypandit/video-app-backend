@@ -147,10 +147,48 @@ const getLikedVideos = asyncHandler(async (req, res) => {
     );
 });
 
+const getTotalVideoLikes = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!videoId || !mongoose.isValidObjectId(videoId)) {
+        throw new ApiError(400, "Valid Video ID is required.");
+    }
+
+    const totalLikes = await Like.countDocuments({ video: videoId });
+
+    return res.status(200).json(new ApiResponse(200, { totalLikes }, "Total video likes fetched successfully."));
+});
+
+const getTotalCommentLikes = asyncHandler(async (req, res) => {
+    const { commentId } = req.params;
+
+    if (!commentId || !mongoose.isValidObjectId(commentId)) {
+        throw new ApiError(400, "Valid Comment ID is required.");
+    }
+
+    const totalLikes = await Like.countDocuments({ comment: commentId });
+
+    return res.status(200).json(new ApiResponse(200, { totalLikes }, "Total comment likes fetched successfully."));
+});
+
+const getTotalTweetLikes = asyncHandler(async (req, res) => {
+    const { tweetId } = req.params;
+
+    if (!tweetId || !mongoose.isValidObjectId(tweetId)) {
+        throw new ApiError(400, "Valid Tweet ID is required.");
+    }
+
+    const totalLikes = await Like.countDocuments({ tweet: tweetId });
+
+    return res.status(200).json(new ApiResponse(200, { totalLikes }, "Total tweet likes fetched successfully."));
+});
 
 export {
     toggleCommentLike,
     toggleTweetLike,
     toggleVideoLike,
-    getLikedVideos
+    getLikedVideos,
+    getTotalVideoLikes,
+    getTotalCommentLikes,
+    getTotalTweetLikes
 }
