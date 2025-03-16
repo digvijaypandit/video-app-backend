@@ -263,13 +263,6 @@ const deleteVideo = asyncHandler(async (req, res) => {
     cloudinary.uploader.destroy(
         deletedVideo.videoPublicId,
       { resource_type: "video" },
-      (error, result) => {
-        if (error) {
-          console.error("Error deleting video:", error);
-        } else {
-          console.log("Video deleted:", result);
-        }
-      }
     );
   }
 
